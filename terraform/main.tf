@@ -1,86 +1,10 @@
 locals {
-  name = var.project_name
+  name_prefix = var.project_name
 }
 
-############################
-# Log-based metric: error count
-############################
-resource "google_logging_metric" "errors" {
-  name   = "${local.name}-error-count"
-  filter = "severity>=ERROR"
-
-  metric_descriptor {
-    metric_kind = "DELTA"
-    value_type  = "INT64"
-    unit        = "1"
-  }
-}
-
-############################
-# Notification channel (email)
-############################
-resource "google_monitoring_notification_channel" "email" {
-  display_name = "${local.name}-ops-email"
-  type         = "email"
-
-  labels = {
-    email_address = var.alert_email
-  }
-}
-
-############################
-# Alert policy on the error metric
-############################
-resource "google_monitoring_alert_policy" "errors" {
-  display_name = "${local.name}-error-alert"
-  combiner     = "OR"
-
-  conditions {
-    display_name = "Error logs detected"
-
-    condition_threshold {
-      filter          = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.errors.name}\" AND resource.type=\"global\""
-      comparison      = "COMPARISON_GT"
-      threshold_value = 0
-      duration        = "0s"
-
-      aggregations {
-        alignment_period   = "300s"
-        per_series_aligner = "ALIGN_DELTA"
-      }
-    }
-  }
-
-  notification_channels = [google_monitoring_notification_channel.email.id]
-}
-
-############################
-# Dashboard
-############################
-resource "google_monitoring_dashboard" "this" {
-  dashboard_json = jsonencode({
-    displayName = "${local.name}-dashboard"
-    gridLayout = {
-      widgets = [
-        {
-          title = "Error log count"
-          xyChart = {
-            dataSets = [
-              {
-                timeSeriesQuery = {
-                  timeSeriesFilter = {
-                    filter = "metric.type=\"logging.googleapis.com/user/${google_logging_metric.errors.name}\""
-                    aggregation = {
-                      alignmentPeriod  = "300s"
-                      perSeriesAligner = "ALIGN_DELTA"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-  })
+module "observability" {
+  source      = "./modules/observability"
+  name_prefix = local.name_prefix
+  environment = var.environment
+  alert_email = var.alert_email
 }
