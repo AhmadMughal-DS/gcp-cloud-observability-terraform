@@ -20,6 +20,8 @@ A reusable monitoring baseline you can point at any workload's logs.
 
 ## 🏗️ Architecture
 
+> 🎨 **Interactive diagram (industry-standard icons):** [open in Lucid — page 30](https://lucid.app/lucidchart/3da75ce3-ea66-4296-81b3-00d20a60435b/edit)
+
 ```mermaid
 flowchart LR
     Logs([Cloud Logging])
